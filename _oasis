@@ -1,0 +1,18 @@
+OASISFormat: 0.4
+Name:        oolc
+Version:     0.1
+Synopsis:    An Ocaml implementation of Open Location Code.
+Authors:     Alix Trieu <alix.trieu@ens-rennes.fr>
+License:     Apache-2.0
+Homepage:    https://github.com/atrieu/Oolc
+Plugins:     META (0.4), StdFiles (0.4)
+
+Library "oolc"
+  Path:       .
+  BuildTools: ocamlbuild
+  Modules:    Oolc
+
+SourceRepository master
+  Type:       git
+  Location:   https://github.com/atrieu/Oolc.git
+  Browser:    https://github.com/atrieu/Oolc
