@@ -1,6 +1,6 @@
 OASISFormat: 0.4
 Name:        oolc
-Version:     0.1
+Version:     0.2
 Synopsis:    An Ocaml implementation of Open Location Code.
 Authors:     Alix Trieu <alix.trieu@ens-rennes.fr>
 License:     Apache-2.0
