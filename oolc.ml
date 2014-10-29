@@ -1,5 +1,3 @@
-module Oolc = struct
-
   let code_alphabet_ = "23456789CFGHJMPQRVWX"
   let encoding_base_ = String.length code_alphabet_
   let latitude_max_ = 90.
@@ -11,9 +9,11 @@ module Oolc = struct
   let max_short_code_len_ = 7
   let pair_code_length_ = 10
   let grid_rows_ = 5.
-  let pair_resolutions_ = [| 20.0; 1.0; 0.05; 0.0025; 0.000125 |]
+  let pair_resolutions_ = [| 20.0; 1.0; 0.05; 0.0025; 0.000125; 0.000125 /. 20.; 0.000125 /. 400.; 0.000125 /. 8000. |]
   let grid_columns_ = 4.
   let grid_size_degrees_ = 0.000125
+  let min_trimmable_code_len_ = 10
+  let max_trimmable_code_len_ = 11
   exception Not_valid
   exception Invalid_Open_Location_Code_length
   type codeArea =
@@ -255,16 +255,17 @@ module Oolc = struct
         let code = String.uppercase code in
         if String.length code <= pair_code_length_ then
           decodePairs code
-        else
+        else begin
           let codeArea = decodePairs code in
-          let gridArea = decodeGrid (String.sub code (pair_code_length_ + 1) (String.length code - pair_code_length_)) in
+          let gridArea = decodeGrid (String.sub code (pair_code_length_ + 1) (String.length code - pair_code_length_ - 1)) in
           create_codeArea (codeArea.latitudeLo +. gridArea.latitudeLo) (codeArea.longitudeLo +. gridArea.longitudeLo) (codeArea.latitudeLo +. gridArea.latitudeHi) (codeArea.longitudeLo +. gridArea.longitudeHi) (codeArea.codeLength + gridArea.codeLength)
+          end
       else
         if String.length code <= pair_code_length_ then
           decodePairs code
         else
           let codeArea = decodePairs code in
-          let gridArea = decodeGrid (String.sub code (pair_code_length_ + 1) (String.length code - pair_code_length_)) in
+          let gridArea = decodeGrid (String.sub code (pair_code_length_ + 1) (String.length code - pair_code_length_ - 1)) in
           create_codeArea (codeArea.latitudeLo +. gridArea.latitudeLo) (codeArea.longitudeLo +. gridArea.longitudeLo) (codeArea.latitudeLo +. gridArea.latitudeHi) (codeArea.longitudeLo +. gridArea.longitudeHi) (codeArea.codeLength + gridArea.codeLength)
     else
       if String.length code <= pair_code_length_ then
@@ -273,4 +274,68 @@ module Oolc = struct
         let codeArea = decodePairs code in
         let gridArea = decodeGrid (String.sub code (pair_code_length_ + 1) (String.length code - pair_code_length_)) in
         create_codeArea (codeArea.latitudeLo +. gridArea.latitudeLo) (codeArea.longitudeLo +. gridArea.longitudeLo) (codeArea.latitudeLo +. gridArea.latitudeHi) (codeArea.longitudeLo +. gridArea.longitudeHi) (codeArea.codeLength + gridArea.codeLength)
-end
+
+  let shortenBy (trimLength : int) (code : string) (latitude : float) (longitude : float) (range : float) : string =
+    if not (isFull code) then
+      failwith ("ValueError: Passed code is not valid and full: " ^ code);
+    let codeArea = decode code in
+    if codeArea.codeLength < min_trimmable_code_len_ || codeArea.codeLength > max_trimmable_code_len_ then
+      failwith ("ValueError: Code length must be between " ^ string_of_int min_trimmable_code_len_ ^ " and " ^ string_of_int max_trimmable_code_len_);
+    let latitude = clipLatitude latitude in
+    let longitude = normalizeLongitude longitude in
+    if abs_float (codeArea.latitudeCenter -. latitude) > range || abs_float (codeArea.longitudeCenter -. longitude) > range then
+      code
+    else
+      let newcode = if String.contains code prefix_ then
+                      let code = String.sub code 1 (String.length code - 1) in
+                      if String.contains code separator_ then
+                        String.sub code 0 (String.index code separator_) ^ String.sub code (String.index code separator_ + 1) (String.length code - 1 - String.index code separator_)
+                        |> String.uppercase
+                      else
+                        String.uppercase code
+                    else
+                      if String.contains code separator_ then
+                        String.sub code 0 (String.index code separator_) ^ String.sub code (String.index code separator_ + 1) (String.length code - 1 - String.index code separator_)
+                        |> String.uppercase
+                      else
+                        String.uppercase code in
+      String.make 1 prefix_ ^ String.sub newcode (trimLength) (String.length newcode -  trimLength)
+
+  let shortenBy4 (code : string) (latitude : float) (longitude : float) : string =
+    shortenBy 4 code latitude longitude 0.25
+
+  let shortenBy6 (code : string) (latitude : float) (longitude : float) : string =
+    shortenBy 6 code latitude longitude 0.0125
+
+  let recoverNearest (shortCode : string) (referenceLatitude : float) (referenceLongitude : float) : string =
+    if not (isShort shortCode) then
+      if isFull shortCode then
+        shortCode
+      else
+        failwith ("ValueError: Passed short code is not valid: " ^ shortCode)
+    else
+      let referenceLatitude = clipLatitude referenceLatitude in
+      let referenceLongitude = normalizeLongitude referenceLongitude in
+      let shortCode = if String.contains shortCode prefix_ then String.sub shortCode 1 (String.length shortCode - 1) else shortCode in
+      let paddingLength = pair_code_length_ - String.length shortCode in
+      let paddingLength = if String.length shortCode mod 2 = 1 then paddingLength + 1 else paddingLength in
+      let resolution = 20. ** (2. -. (float_of_int paddingLength) /. 2.) in
+      let areaToEdge = resolution /. 2. in
+      let roundedLatitude = floor (referenceLatitude /. resolution) *. resolution in
+      let roundedLongitude = floor (referenceLongitude /. resolution) *. resolution in
+      let codeArea = (encode roundedLatitude roundedLongitude ~codeLength: paddingLength) ^ shortCode |> decode in
+      let latitudeCenter = ref codeArea.latitudeCenter in
+      let degreesDifference = !latitudeCenter -. referenceLatitude in
+      if degreesDifference > areaToEdge then
+        latitudeCenter := !latitudeCenter -. resolution
+      else
+        if degreesDifference < (-. areaToEdge) then
+          latitudeCenter := !latitudeCenter +. resolution;
+      let longitudeCenter = ref codeArea.longitudeCenter in
+      let degreesDifference = !longitudeCenter -. referenceLongitude in
+      if degreesDifference > areaToEdge then
+        longitudeCenter := !longitudeCenter -. resolution
+      else
+        if degreesDifference < (-. areaToEdge) then
+          longitudeCenter := !longitudeCenter +. resolution;
+      encode !latitudeCenter !longitudeCenter ~codeLength: codeArea.codeLength
