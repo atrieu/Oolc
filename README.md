@@ -19,12 +19,12 @@ Oolc is written in OCaml and requires OCaml >= 4.01.0 and `ocamlfind` to install
 ## Installation
 * To install with [OPAM](http://opam.ocamlpro.com/) (recommended):
 
-      opam install oolc
+        opam install oolc
 
 * To get the development version and compile:
 
-      git clone git@github.com:atrieu/Oolc.git
-      cd oolc
-      ocaml setup.ml -configure
-      ocaml setup.ml -build
-      ocaml setup.ml -install
+        git clone git@github.com:atrieu/Oolc.git
+        cd Oolc/
+        ocaml setup.ml -configure
+        ocaml setup.ml -build
+        ocaml setup.ml -install
