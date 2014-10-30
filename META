@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: 2d0100df4cca731771fbcef9e9d4eb65)
-version = "0.2"
+# DO NOT EDIT (digest: 60de7463839d922ec7905f848fd79d6e)
+version = "0.3"
 description = "An Ocaml implementation of Open Location Code."
 archive(byte) = "oolc.cma"
 archive(byte, plugin) = "oolc.cma"
