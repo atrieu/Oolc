@@ -9,7 +9,7 @@ let min_short_code_len_ = 4
 let max_short_code_len_ = 7
 let pair_code_length_ = 10
 let grid_rows_ = 5.
-let pair_resolutions_ = [| 20.0; 1.0; 0.05; 0.0025; 0.000125; 0.000125 /. 20.; 0.000125 /. 400.; 0.000125 /. 8000. |]
+let pair_resolutions_ = [| 20.0; 1.0; 0.05; 0.0025; 0.000125 |]
 let grid_columns_ = 4.
 let grid_size_degrees_ = 0.000125
 let min_trimmable_code_len_ = 10
@@ -256,23 +256,23 @@ let decode (code : string) : codeArea =
       if String.length code <= pair_code_length_ then
         decodePairs code
       else begin
-        let codeArea = decodePairs code in
-        let gridArea = decodeGrid (String.sub code (pair_code_length_ + 1) (String.length code - pair_code_length_ - 1)) in
+        let codeArea = decodePairs (String.sub code 0 pair_code_length_) in
+        let gridArea = decodeGrid (String.sub code pair_code_length_ (String.length code - pair_code_length_)) in
         create_codeArea (codeArea.latitudeLo +. gridArea.latitudeLo) (codeArea.longitudeLo +. gridArea.longitudeLo) (codeArea.latitudeLo +. gridArea.latitudeHi) (codeArea.longitudeLo +. gridArea.longitudeHi) (codeArea.codeLength + gridArea.codeLength)
       end
     else
     if String.length code <= pair_code_length_ then
       decodePairs code
     else
-      let codeArea = decodePairs code in
-      let gridArea = decodeGrid (String.sub code (pair_code_length_ + 1) (String.length code - pair_code_length_ - 1)) in
+      let codeArea = decodePairs (String.sub code 0 pair_code_length_) in
+      let gridArea = decodeGrid (String.sub code pair_code_length_ (String.length code - pair_code_length_)) in
       create_codeArea (codeArea.latitudeLo +. gridArea.latitudeLo) (codeArea.longitudeLo +. gridArea.longitudeLo) (codeArea.latitudeLo +. gridArea.latitudeHi) (codeArea.longitudeLo +. gridArea.longitudeHi) (codeArea.codeLength + gridArea.codeLength)
   else
   if String.length code <= pair_code_length_ then
     decodePairs code
   else
-    let codeArea = decodePairs code in
-    let gridArea = decodeGrid (String.sub code (pair_code_length_ + 1) (String.length code - pair_code_length_)) in
+    let codeArea = decodePairs (String.sub code 0 pair_code_length_) in
+    let gridArea = decodeGrid (String.sub code pair_code_length_ (String.length code - pair_code_length_)) in
     create_codeArea (codeArea.latitudeLo +. gridArea.latitudeLo) (codeArea.longitudeLo +. gridArea.longitudeLo) (codeArea.latitudeLo +. gridArea.latitudeHi) (codeArea.longitudeLo +. gridArea.longitudeHi) (codeArea.codeLength + gridArea.codeLength)
 
 let shortenBy (trimLength : int) (code : string) (latitude : float) (longitude : float) (range : float) : string =
